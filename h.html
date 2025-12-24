@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>For Hillary 🎄</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --paper-color: #fcfaf2;
+            --text-color: #333333;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            font-family: 'Georgia', serif;
+            background: var(--bg-color);
+        }
+
+        .page {
+            position: absolute;
+            width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.8s ease-in-out;
+        }
+
+        .active { display: flex; }
+
+        /* --- PAGE 1: DROW FLOWERS GARDEN --- */
+        #page1 { background: radial-gradient(circle at center, #001220 0%, #000 100%); cursor: crosshair; }
+        #canvas1 { position: absolute; top: 0; left: 0; }
+        
+        .hint {
+            position: absolute; top: 40%;
+            color: rgba(255, 255, 255, 0.8); pointer-events: none;
+            font-size: 1.5rem; text-align: center;
+            letter-spacing: 2px; z-index: 5;
+            text-shadow: 0 0 15px rgba(255,255,255,0.6);
+        }
+
+        /* --- PAGE 2: THE NOTEBOOK --- */
+        #page2 { background: #050505; }
+        .notebook {
+            background: var(--paper-color);
+            width: 85%; max-width: 500px;
+            min-height: 480px;
+            padding: 40px;
+            border-radius: 2px 15px 15px 2px;
+            box-shadow: 0 0 50px rgba(255,255,255,0.1), inset 25px 0 30px -10px rgba(0,0,0,0.15);
+            position: relative;
+            display: flex; flex-direction: column; justify-content: flex-start;
+        }
+        .notebook-content { 
+            font-size: 1.15rem; color: var(--text-color); 
+            line-height: 1.6; text-align: left;
+            transition: opacity 0.4s; font-style: italic;
+            margin-top: 20px;
+        }
+        .page-num { position: absolute; bottom: 20px; right: 30px; color: #bbb; font-size: 0.8rem; }
+        .book-nav { margin-top: 30px; display: flex; gap: 15px; }
+
+        /* --- PAGE 3: CHRISTMAS FINALE --- */
+        #page3 { background: radial-gradient(circle, #4a0000 0%, #000 100%); color: gold; }
+        .tree { font-size: 100px; margin-bottom: 20px; filter: drop-shadow(0 0 20px gold); }
+
+        .nav-btn {
+            padding: 12px 35px;
+            background: white; color: #000;
+            border: none; border-radius: 50px;
+            cursor: pointer; z-index: 10; font-weight: bold;
+            transition: 0.3s; box-shadow: 0 0 20px rgba(255,255,255,0.2);
+            text-transform: uppercase; letter-spacing: 1px;
+            font-family: sans-serif;
+        }
+        .nav-btn:hover { transform: scale(1.1); background: gold; box-shadow: 0 0 30px gold; }
+    </style>
+</head>
+<body>
+
+    <div id="page1" class="page active">
+        <canvas id="canvas1"></canvas>
+        <div class="hint" id="hint-text">Click To Add Flowers</div>
+        <button class="nav-btn" style="bottom: 40px; position: absolute;" onclick="nextPage(2)">Open Letter :></button>
+    </div>
+
+    <div id="page2" class="page">
+        <div class="notebook">
+            <div id="notebook-text" class="notebook-content">Loading...</div>
+            <div id="page-counter" class="page-num">1 / 8</div>
+        </div>
+        <div class="book-nav">
+            <button class="nav-btn" onclick="prevNote()">Back</button>
+            <button class="nav-btn" onclick="nextNote()">Next</button>
+        </div>
+    </div>
+
+    <div id="page3" class="page">
+        <div class="tree">🎄</div>
+        <h1 style="font-size: 2.5rem; text-align: center; text-shadow: 0 0 20px gold;">Merry Christmas,<br>Hillary!</h1>
+        <button class="nav-btn" onclick="nextPage(1)" style="margin-top: 30px;">To the Garden? ❤️</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas1');
+        const ctx = canvas.getContext('2d');
+        let flowers = [];
+        let particles = [];
+
+        function initCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.onresize = initCanvas;
+        initCanvas();
+
+        class Snow {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 1;
+                this.speed = Math.random() * 1 + 0.5;
+                this.opacity = Math.random() * 0.5 + 0.3;
+            }
+            update() {
+                this.y += this.speed;
+                if (this.y > canvas.height) this.y = -10;
+            }
+            draw() {
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        class DrowFlower {
+            constructor(x, y) {
+                this.x = x;
+                this.targetY = y;
+                this.growth = 0;
+                this.bloomPhase = 0;
+                const palette = [
+                    {p: '#ff0055', g: '#ff85a1'}, 
+                    {p: '#ae00ff', g: '#e0aaff'}, 
+                    {p: '#ffb700', g: '#fff1cc'}, 
+                    {p: '#00f2ff', g: '#b3fbff'}  
+                ];
+                this.color = palette[Math.floor(Math.random() * palette.length)];
+                this.curve = (Math.random() - 0.5) * 100;
+                this.height = canvas.height - y;
+            }
+            draw() {
+                const currentY = canvas.height - (this.height * this.growth);
+                ctx.beginPath();
+                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = "rgba(100, 255, 100, 0.4)";
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = "#64ff64";
+                ctx.moveTo(this.x, canvas.height);
+                ctx.quadraticCurveTo(this.x + this.curve, (canvas.height + currentY) / 2, this.x, currentY);
+                ctx.stroke();
+
+                if (this.growth >= 1) {
+                    if (this.bloomPhase < 1) this.bloomPhase += 0.05;
+                    ctx.save();
+                    ctx.translate(this.x, currentY);
+                    ctx.scale(this.bloomPhase, this.bloomPhase);
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = this.color.p;
+                    for (let i = 0; i < 5; i++) {
+                        ctx.fillStyle = this.color.p;
+                        ctx.rotate((Math.PI * 2) / 5);
+                        ctx.beginPath();
+                        ctx.ellipse(0, -10, 8, 15, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = this.color.g;
+                        ctx.beginPath();
+                        ctx.ellipse(0, -10, 4, 8, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                }
+                ctx.shadowBlur = 0;
+            }
+            update() { if (this.growth < 1) this.growth += 0.02; }
+        }
+
+        for (let i = 0; i < 100; i++) particles.push(new Snow());
+
+        function animate() {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            flowers.forEach(f => { f.update(); f.draw(); });
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        canvas.addEventListener('mousedown', (e) => {
+            document.getElementById('hint-text').style.display = 'none';
+            flowers.push(new DrowFlower(e.clientX, e.clientY));
+        });
+
+        function nextPage(num) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page' + num).classList.add('active');
+            if(num === 1) { flowers = []; document.getElementById('hint-text').style.display = 'block'; }
+        }
+
+        const notes = [
+            "Merry Christmas, Hillary :>\n\nI know it has been months since we last talked or really saw each other, if we do not count that unexpected moment at BK when we crossed paths by chance. You still look beautiful. If not, you look even better than ever. Kamusta ka na ba? I hope life has been kind to you and that you are enjoying every bit of where you are now.",
+            "You still caught my eye the moment I saw you again. It felt like my world paused for a second, just like before. I found myself remembering how I used to see you, and how your smile stayed with me even when I thought I was starting to forget it. I am happy that our paths crossed again, even if it was only for a few seconds.",
+            "Life happened, priorities changed, and we went our separate ways. I thought that was it. I told myself na okay na ako, na tapos na yung feelings. Pero siguro may mga bagay talagang natutulog lang, hindi nawawala.",
+            "That short interaction felt serendipity. Something unplanned and unexpected, yet meaningful in its own quiet way. I didn't realize I needed that moment until it happened. It reminded me that some interactions leave a mark even if they remain unfinished.",
+            "I didn’t expect my feelings to come back, pero they did. Slowly, quietly. Hindi biglaan, hindi overwhelming. Just a gentle reminder of what I once felt. I found myself hoping you’re happy, wondering how your days are, and smiling at the thought of you again.",
+            "I'm not writing to make request or to disrupt the way things are. I simply wanted to be honest. Sometimes admitting something to yourself makes you feel lighter. That meeting you again meant something to me, and that feelings did not fade as quickly as I imagined.",
+            "If that moment was all we were meant to have, then I’m still grateful. It reminded me that I can still feel deeply, sincerely. And if life ever gives us another chance to talk, even just as friends, I would appreciate that too.",
+            "For now, I simply want to express my appreciation. Thank you for unknowingly reviving a feeling I once treasured. This Christmas, I wish you peace, happiness, and all that you deserve. Whatever happens next, I'm glad our paths crossed again, even for just a little while."
+        ];
+
+        let currentNote = 0;
+
+        function updateNote() {
+            const textEl = document.getElementById('notebook-text');
+            textEl.style.opacity = 0;
+            setTimeout(() => {
+                textEl.innerText = notes[currentNote];
+                textEl.style.opacity = 1;
+                document.getElementById('page-counter').innerText = (currentNote + 1) + " / " + notes.length;
+            }, 300);
+        }
+
+        function nextNote() {
+            if (currentNote < notes.length - 1) { currentNote++; updateNote(); } 
+            else { nextPage(3); }
+        }
+
+        function prevNote() {
+            if (currentNote > 0) { currentNote--; updateNote(); }
+        }
+        updateNote();
+    </script>
+</body>
+</html>
